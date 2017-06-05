@@ -1,4 +1,3 @@
-var righto = require('righto');
 var fs = require('fs');
 
 var pathsFile = new Promise(function(resolve, reject){

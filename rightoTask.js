@@ -1,4 +1,6 @@
 var righto = require('righto');
+righto._debug = true;
+righto._autotraceOnError = true;
 var fs = require('fs');
 
 var pathsFile = righto(fs.readFile, __dirname + '/test.txt', 'utf8');
