@@ -14,7 +14,7 @@
     "generic-errors": "^2.0.2",
     "request-data": "^1.2.0",
     "righto": "^3.0.1",
-    "sea-lion": "^2.0.0",
+    "sea-lion": "^2.0.1",
     "tape": "^4.7.0",
     "zip-dir": "^1.0.2"
   }
