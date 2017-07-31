@@ -1,9 +1,14 @@
 var errors = require('generic-errors');
 var Stream = require('stream');
 
-module.exports = function handle(handler){
-    return function(request, response, tokens){
-        handler(tokens, function(error, result){
+module.exports = function handle(wrapper, handler){
+    if(!handler){
+        handler = wrapper;
+        wrapper = (x)=>x;
+    }
+    return wrapper(function(request, response){
+        var args = Array.prototype.slice.call(arguments, 2);
+        handler.apply(null, args.concat(function(error, result){
             if(error){
                 if(error instanceof errors.BaseError){
                     response.writeHead(error.code);
@@ -21,11 +26,11 @@ module.exports = function handle(handler){
             }
 
             if(result instanceof Buffer){
-                result.pipe(response);
+                response.end(result);
                 return;
             }
 
             response.end(JSON.stringify(result));
-        });
-    }
+        }));
+    });
 };
