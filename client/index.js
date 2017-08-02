@@ -8,6 +8,7 @@ var path = require('path');
 var spawn = require('child_process').spawn;
 var spawnSync = require('child_process').spawnSync;
 var exec = require('child_process').exec;
+var chalk = require('chalk');
 
 var prompt = createPrompt({
         sigint: true
@@ -20,7 +21,7 @@ function complete(commands) {
         var i;
         var ret = [];
         for (i=0; i< commands.length; i++) {
-            if (commands[i].indexOf(str) == 0){
+            if (commands[i].toLowerCase().indexOf(str.toLowerCase()) == 0){
                 ret.push(commands[i]);
             }
         }
@@ -61,7 +62,6 @@ function getChallengesList(serverAddress, callback){
 
 function loadChallenge(serverAddress, challengeName, callback){
     var challengePath = challengesDirectory + '/' + challengeName;
-    var relativeChallengePath = './' + path.relative(process.cwd(), challengePath);
     var zipPath = challengePath + '.zip';
 
     var zipStream = righto.handle(righto(fs.stat, zipPath), function(error, done){
@@ -100,7 +100,6 @@ function loadChallenge(serverAddress, challengeName, callback){
         });
 
     var complete = extractedPath.get(function(challengePath){
-        console.log('Launch a terminal here:', relativeChallengePath);
         return challengePath;
     });
 
@@ -109,7 +108,7 @@ function loadChallenge(serverAddress, challengeName, callback){
 
 function chooseChallenge(serverAddress, challengesList, callback){
     console.log('Available Challenges:');
-    console.log(challengesList.map(x => '  ' + x).join('\n'));
+    console.log(challengesList.map(x => '  ' + chalk.green(x)).join('\n'));
     var challengeName = righto.sync(prompt, 'Which challenge do you want to do?: ', {
             autocomplete: complete(challengesList)
         })
@@ -134,75 +133,86 @@ function launchEditor(launchEditorCommand, challengePath, callback){
 }
 
 function executeChallenge(challengeName, challengePath, serverAddress, name, callback){
-    console.log(
-        '\n### FEEL FREE TO USE ANOTHER TERMINAL TO TEST / DEBUG YOUR CODE ###\n',
-        '        Just come back here and (R)un it when you\'re done :)\n\n'
-    );
-
-    var which = prompt('(R)un the tests or (c)hoose another challenge: ', 'r').toLowerCase();
-
-    if(which === 'c'){
-        return callback();
-    }
-
     var rerun = executeChallenge.apply.bind(executeChallenge, null, arguments);
-
-    makeRequest({
-        method: 'POST',
-        url: serverAddress + '/results',
-        json: {
-            challenge: challengeName,
-            name: name
-        }
-    }, ()=>{});
-
-    var child = spawn('node', [challengePath + '/index.js'], { cwd: challengePath, env: process.env, stdio: [process.stdin, 'pipe', 'pipe'] });
-
-    child.stdout.pipe(process.stdout);
-    child.stderr.pipe(process.stderr);
-
-    var lastChildOutput;
-    var lastChildError;
-
-    child.stdout.on('data', function(data){
-        lastChildOutput = data.toString();
-    });
-    child.stderr.on('data', function(data){
-        lastChildOutput = data.toString();
-    });
     
-    child.on('close', function(){
+    var isFirstInit = righto(makeRequest, {
+            method: 'POST',
+            url: serverAddress + '/results',
+            json: {
+                challenge: challengeName,
+                name: name
+            }
+        });
 
-        if(lastChildError){
-            console.log('Challenge errored!');
+    isFirstInit(function(error, firstRun){
+        if(!firstRun){
+            console.log(chalk.green.bold(
+                '\n FEEL FREE TO USE ANOTHER TERMINAL TO TEST / DEBUG YOUR CODE\n',
+                '      Just come back here and (R)un it when you\'re done :)\n\n'
+            ));
+            console.log(chalk.yellow('Challenge directory:'), './' + path.relative(process.cwd(), challengePath), '\n');
+        }
+
+
+        var which = firstRun ? 'R' : prompt('(R)un the tests or (c)hoose another challenge: ', 'r').toLowerCase();
+
+        if(which === 'c'){
+            return callback();
+        }
+
+        var child = spawn('node', [challengePath + '/index.js'], { cwd: challengePath, env: process.env, stdio: [process.stdin, 'pipe', 'pipe'] });
+
+        child.stdout.pipe(process.stdout);
+        child.stderr.pipe(process.stderr);
+
+        var lastChildOutput;
+        var lastChildError;
+
+        child.stdout.on('data', function(data){
+            lastChildOutput = data.toString();
+        });
+        child.stderr.on('data', function(data){
+            lastChildOutput = data.toString();
+        });
+        
+        child.on('close', function(){
+
+            if(lastChildError){
+                console.log('Challenge errored!');
+                makeRequest({
+                    method: 'PUT',
+                    url: serverAddress + '/results',
+                    json: {
+                        challenge: challengeName,
+                        name: name,
+                        result: 'error'
+                    }
+                }, function(error, result){
+                    rerun();
+                });
+                return;
+            }
+
+            var result = lastChildOutput.split('\n').filter(x=>x).pop();
+            result = (result && result.trim() === '# ok') ? 'pass' : 'fail';
+
+            console.log('\nChallenge completed, result:', chalk[result === 'pass' ? 'green' : 'red'](result));
+
+            if(firstRun){
+                return rerun();
+            }
+
             makeRequest({
                 method: 'PUT',
                 url: serverAddress + '/results',
                 json: {
                     challenge: challengeName,
                     name: name,
-                    result: 'error'
+                    result: result
                 }
             }, function(error, result){
                 rerun();
             });
-            return;
-        }
-
-        var result = lastChildOutput.split('\n').filter(x=>x).pop();
-        result = (result && result.trim() === '# ok') ? 'pass' : 'fail';
-
-        console.log('\nChallenge completed, result:', result);
-        makeRequest({
-            method: 'PUT',
-            url: serverAddress + '/results',
-            json: {
-                challenge: challengeName,
-                name: name,
-                result: result
-            }
-        }, function(error, result){
-            rerun();
         });
     });
 }
@@ -210,9 +220,7 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
 console.log('\nAsync Challenges.\n');
 var defaultName = 'Node developer ' + parseInt(Math.random() * 100);
 var name = righto.sync(prompt, 'What\'s your name?: (Default ' + defaultName + '): ', defaultName);
-var launchEditorCommand = righto.sync(prompt, 'How do  you launch your editor? If you don\'t know, type `N` (Default `N`): ', 'N', righto.after(name))
-    .get(command => command.toLowerCase() === 'n' ? false : command);
-var serverAddress = righto(getServerAddress, righto.after(launchEditorCommand));
+var serverAddress = righto(getServerAddress, righto.after(name));
 var challengesList = righto(getChallengesList, serverAddress);
 
 function challengePrompt(error){
@@ -221,8 +229,7 @@ function challengePrompt(error){
     }
     var challengeName = righto(chooseChallenge, serverAddress, challengesList);
     var challengeLoaded = righto(loadChallenge, serverAddress, challengeName);
-    var editorLaunched = righto(launchEditor, launchEditorCommand, challengeLoaded);
-    var challengeExecuted = righto(executeChallenge, challengeName, challengeLoaded, serverAddress, name, righto.after(editorLaunched));
+    var challengeExecuted = righto(executeChallenge, challengeName, challengeLoaded, serverAddress, name);
 
     challengeExecuted(challengePrompt);
 }

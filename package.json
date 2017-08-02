@@ -4,18 +4,25 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify ui/scripts/index.js > public/index.js",
+    "watch": "watchify -d ui/scripts/index.js -o public/index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "abbott": "^1.1.3",
+    "cpjax": "^1.1.2",
     "dion": "^1.0.2",
+    "fastn": "^2.8.1",
     "generic-errors": "^2.0.2",
     "request-data": "^1.2.0",
     "righto": "^3.0.1",
     "sea-lion": "^2.0.1",
     "tape": "^4.7.0",
     "zip-dir": "^1.0.2"
+  },
+  "devDependencies": {
+    "watchify": "^3.9.0"
   }
 }

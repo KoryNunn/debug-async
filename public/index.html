@@ -2,24 +2,81 @@
 <html>
 <head>
     <title>Async challenges</title>
+    <script type="text/javascript" src="index.js"></script>
+    <style type="text/css">
+        body{
+            font-family: Arial;
+            font-size: 1.5em;
+        }
+        .challenges{
+            display: flex;
+            flex-flow: row wrap;
+            align-items: space-around;
+        }
+        .challenge{
+            display:inline-block;
+            max-width: 30%;
+            width: 30%;
+            margin: 10px;
+            padding: 20px;
+            background: rgba(0, 0, 50, 0.3);
+        }
+        .participants{
+            display: flex;
+            flex-flow: row wrap;
+            align-items: space-around;
+        }
+        .participant{
+            font-size: 0.8em;
+            width: 45%;
+            margin: 2px;
+            padding: 10px;
+            border: solid 1px rgba(0,0,0,0.5);
+        }
+        .participant h2{
+            font-size: 1.1em;
+            color: rgba(0,0,0,0.5);
+            margin: 0;
+        }
+        .participant h3{
+            font-size: 1em;
+            color: rgba(0,0,0,0.5);
+            margin: 0;
+        }
+        .participant p{
+            margin: 5px auto;
+        }
+        .result span{
+            padding: 2px;
+        }
+        .result.pass {
+            color: green;
+        }
+        .result.fail {
+            color: rgb(100,0,0);
+        }
+    </style>
 </head>
 <body>
     <h1>Async challenges</h1>
 
-    <p>Download each challenge zip to try it yourself</p>
+    <p>Download the challenge client to participate</p>
+    <a href="/client">Download Client</a>
+
+    <p>Unzip and in the directory run `npm start`</p>
 
     <section>
         <h1>Simple debugging</h1>
-        <a href="/challenges/debugLoadFiles.zip">Download</a>
         <p>
             This challenge demonstrates the debuggability of different ways of writing asynchronous code.
         </p>
         <p>
-            There is a folder for each method, and each method is functionally identical.
-        </p>
-        <p>
             Pick a method and get the tests passing!
         </p>
+    </section>
+
+    <section class="results">
+        
     </section>
 </body>
 </html>

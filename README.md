@@ -8,16 +8,14 @@
 npm install
 ```
 
-## Pick a version
+## Run the server
 
 ```
-node promiseTask
+node server
 ```
 
-OR
+## Navigate to the server in a browser
 
-```
-node rightoTask
-```
+localhost:8080
 
-## Find the bug
+and follow the instructions

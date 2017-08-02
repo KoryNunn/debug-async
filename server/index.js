@@ -8,40 +8,49 @@ var zipdir = require('zip-dir');
 var errors = require('generic-errors');
 var requestData = require('request-data');
 var handle = require('./handle');
+var port = 8080;
 
 var router = new SeaLion();
-var fileServer = new Dion(router);
+var dion = new Dion(router);
 
+var clientFolderPath = path.join(__dirname, '../client');
 var challengesFolderPath = path.join(__dirname, '../challenges');
 
 var results = {};
 
-setInterval(function(){
-    Object.keys(results).forEach(function(challengeName){
-        console.log('\n', challengeName);
-        Object.keys(results[challengeName]).forEach(function(participantName){
-            var participantResults = results[challengeName][participantName];
-            console.log('  ', participantName);
-            if(!participantResults.attempts.length){
-                console.log('    ', 'No attempts yet');
-                return;
-            }
-            var nOver = participantResults.attempts.length - 3;
-            if(nOver > 0){
-                console.log('    ', nOver, 'attempt' + (nOver === 1 ? '' : 's') + ' not shown ...');
-            }
-            participantResults.attempts.slice(-5).forEach(function(attempt){
-                console.log('    ', 'Elapsed:', ((attempt.time - participantResults.start) / 1000 / 60).toFixed(2), 'minutes - Result:', attempt.result.toUpperCase());
-            });
-        });
-    })
-}, 3000);
+function rightoCacher(cacheTime){
+    var result;
+    var lastRetrieved;
 
+    return function(newRighto){
+        var now = Date.now();
+
+        if(!result || now - lastRetrieved > cacheTime){
+            result = newRighto;
+            lastRetrieved = now;
+        }
+
+        return result;
+    };
+}
+
+var clientCacher = rightoCacher(10000);
+function getClient(callback){
+    var zippedClient = clientCacher(righto(zipdir, clientFolderPath));
+
+    zippedClient(callback);
+}
+
+var taskCachers = {};
 function getTaskZip(taskName, callback){
     var taskFolderPath = path.join(challengesFolderPath, taskName);
     var maybeTaskPath = righto(fs.stat, taskFolderPath).get(()=>taskFolderPath);
-    var validTaskPath = righto.handle(maybeTaskPath, (error, done) => done(new errors.NotFound()));
-    var zippedBuffer = righto(zipdir, validTaskPath);
+    var validTaskPath = righto.handle(maybeTaskPath, (
+        error, done) => done(new errors.NotFound()));
+    var zippedBuffer = validTaskPath.get(function(taskPath){
+            taskCachers[taskName] = taskCachers[taskName] || rightoCacher(3000);
+            return taskCachers[taskName](righto(zipdir, taskPath));
+        });
 
     zippedBuffer(callback);
 }
@@ -52,11 +61,13 @@ function getChallengesList(callback){
 
 function initResult(data, callback){
     var challengeResults = results[data.challenge] = results[data.challenge] || {};
+
+    var isFirstInit = !(data.name in challengeResults);
     var participantResults = challengeResults[data.name] = challengeResults[data.name] || {
         start: Date.now(),
         attempts: []
     };
-    callback();
+    callback(null, isFirstInit);
 }
 
 function storeResult(data, callback){
@@ -76,7 +87,10 @@ function storeResult(data, callback){
 
 router.add({
     '/': {
-        get: fileServer.serveFile(path.join(__dirname, '../public/index.html'), 'text/html')
+        get: dion.serveFile(path.join(__dirname, '../public/index.html'), 'text/html')
+    },
+    '/client': {
+        get: handle((tokens, callback) => getClient(callback))
     },
     '/challenges': {
         get: handle((tokens, callback) => getChallengesList(callback))
@@ -91,9 +105,15 @@ router.add({
     },
     '/ping': {
         get: handle((tokens, callback) => callback(null, 'totes legit'))
+    },
+    '/`path...`': {
+        get: dion.serveDirectory('./public', {
+            '.js': 'application/javascript'
+        })
     }
 });
 
 var server = http.createServer(router.createHandler());
 
-server.listen(8080);
+server.listen(port);
+console.log('running on', port)
