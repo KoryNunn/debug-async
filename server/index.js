@@ -36,7 +36,9 @@ function rightoCacher(cacheTime){
 
 var clientCacher = rightoCacher(10000);
 function getClient(callback){
-    var zippedClient = clientCacher(righto(zipdir, clientFolderPath));
+    var zippedClient = clientCacher(righto(zipdir, clientFolderPath, {
+        filter: (path, stat) => (!/\.zip$/.test(path) && !/.*challenges\/.*/.test(path))
+    }));
 
     zippedClient(callback);
 }
@@ -90,7 +92,11 @@ router.add({
         get: dion.serveFile(path.join(__dirname, '../public/index.html'), 'text/html')
     },
     '/client': {
-        get: handle((tokens, callback) => getClient(callback))
+        get: handle(function(tokens, callback){
+            var response = this.response;
+            response.writeHead(200, {'Content-Disposition': 'inline; filename=client.zip'});
+            getClient(callback);
+        })
     },
     '/challenges': {
         get: handle((tokens, callback) => getChallengesList(callback))

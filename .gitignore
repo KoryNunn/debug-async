@@ -1,3 +1,4 @@
 node_modules
 client/challenges/*
 public/index.js
+package-lock.json

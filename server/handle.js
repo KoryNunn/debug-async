@@ -8,7 +8,7 @@ module.exports = function handle(wrapper, handler){
     }
     return wrapper(function(request, response){
         var args = Array.prototype.slice.call(arguments, 2);
-        handler.apply(null, args.concat(function(error, result){
+        handler.apply({request, response}, args.concat(function(error, result){
             if(error){
                 if(error instanceof errors.BaseError){
                     response.writeHead(error.code);
