@@ -8,12 +8,12 @@ function fixedMinutes(time){
 }
 
 function renderParticipantResults(startTime){
-    return fastn('div', { class: fastn.binding('item.result', result => [result, 'result']) }, 
-        fastn('span', 
+    return fastn('div', { class: fastn.binding('item.result', result => [result, 'result']) },
+        fastn('span',
             fastn.binding('item.result', result => result.toUpperCase())
         ),
         ' - ',
-        fastn('span', 
+        fastn('span',
             fastn.binding(startTime, 'item.time', (start, time) => fixedMinutes(time - start)),
             ' minutes'
         )
@@ -22,7 +22,7 @@ function renderParticipantResults(startTime){
 
 function renderParticipants(){
     var attemptsToShow = 3;
-    return fastn('div', { class: 'participant' }, 
+    return fastn('div', { class: 'participant' },
         fastn('h2', fastn.binding('key')),
         fastn('p', fastn.binding('item.attempts|*', function(attempts){
             var notShownCount = attempts.length - 3;
@@ -30,7 +30,7 @@ function renderParticipants(){
         })),
         fastn('section:list', {
             items: fastn.binding('item.attempts|*', attempts => attempts.slice(-3)),
-            template: (model, scope) => 
+            template: (model, scope) =>
                 renderParticipantResults(fastn.binding('item.start').attach(scope)),
             emptyTemplate: () => fastn('h3', 'No results yet')
         })
@@ -38,7 +38,7 @@ function renderParticipants(){
 }
 
 function renderChallengeResults(){
-    return fastn('div', { class: 'challenge' }, 
+    return fastn('div', { class: 'challenge' },
         fastn('h2', fastn.binding('key')),
         fastn('section:list', {
             class: 'participants',
@@ -74,7 +74,7 @@ function renderChallengeResults(){
     );
 }
 
-var ui = fastn('section', 
+var ui = fastn('section',
         fastn('h1', 'Results'),
         fastn('list', {
             class: 'challenges',

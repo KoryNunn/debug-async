@@ -8,9 +8,9 @@ module.exports = function(callback){
 
     var fileNames = pathsFile.get(filePaths => filePaths.spilt('\n'));
 
-    var files = fileNames.get(names => 
+    var files = fileNames.get(names =>
             righto.all(names.map(name =>
-                 righto(fs.readFile, __dirname + '/' + name + '.txt', 'utf8')
+                righto(fs.readFile, __dirname + '/' + name + '.txt', 'utf8')
             )
         ));
 

@@ -15,7 +15,8 @@ var prompt = createPrompt({
     });
 
 var challengesDirectory = __dirname + '/challenges';
- 
+var sessionPath = path.join(__dirname, './session.json');
+
 function complete(commands) {
     return function (str) {
         var i;
@@ -29,8 +30,8 @@ function complete(commands) {
     };
 };
 
-function getServerAddress(callback){
-    var serverAddress = prompt('Where\'s the server?: ', 'localhost:8080');
+function getServerAddress(defaultAddress, callback){
+    var serverAddress = prompt('Where\'s the server?: (Default: ' + defaultAddress + ')', defaultAddress);
     if(serverAddress.indexOf('http') !== 0){
         serverAddress = 'http://' + serverAddress;
     }
@@ -73,7 +74,7 @@ function loadChallenge(serverAddress, challengeName, callback){
             });
         })
         .get(() => fs.createReadStream(zipPath))
-        
+
     var extractedPath = zipStream.get(function(zipStream){
 
             var extract = righto.handle(righto(fs.stat, challengePath).get(function(){
@@ -90,11 +91,11 @@ function loadChallenge(serverAddress, challengeName, callback){
 
                 console.log('Extracting...');
 
-                return righto(function(done){ 
+                return righto(function(done){
                     zipStream.pipe(unzip.Extract({ path: challengePath }))
                     .on('close', function(){
                         done(null, challengePath);
-                    });  
+                    });
                 });
             });
         });
@@ -134,7 +135,7 @@ function launchEditor(launchEditorCommand, challengePath, callback){
 
 function executeChallenge(challengeName, challengePath, serverAddress, name, callback){
     var rerun = executeChallenge.apply.bind(executeChallenge, null, arguments);
-    
+
     var isFirstInit = righto(makeRequest, {
             method: 'POST',
             url: serverAddress + '/results',
@@ -174,7 +175,7 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
         child.stderr.on('data', function(data){
             lastChildOutput = data.toString();
         });
-        
+
         child.on('close', function(){
 
             if(lastChildError){
@@ -193,8 +194,7 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
                 return;
             }
 
-            var result = lastChildOutput.split('\n').filter(x=>x).pop();
-            result = (result && result.trim() === '# ok') ? 'pass' : 'fail';
+            var result = lastChildOutput.match(/# ok/) ? 'pass' : 'fail';
 
             console.log('\nChallenge completed, result:', chalk[result === 'pass' ? 'green' : 'red'](result));
 
@@ -217,11 +217,36 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
     });
 }
 
+function loadSession(callback){
+    var maybeSessionFile = righto(fs.readFile, sessionPath)
+        .get(function(file){
+            try{
+                return JSON.parse(file);
+            }catch(error){
+                return righto.fail('JSON Parse fail');
+            }
+        });
+    var session = righto.handle(maybeSessionFile, function(error, done){
+        done(null, {
+            name: 'Node developer ' + parseInt(Math.random() * 100),
+            serverAddress: 'localhost:8080'
+        });
+    });
+
+    session(callback);
+}
+
+function saveSession(name, serverAddress, callback){
+    fs.writeFile(sessionPath, JSON.stringify({name, serverAddress}), callback);
+}
+
 console.log('\nAsync Challenges.\n');
+var existingSession = righto(loadSession);
 var defaultName = 'Node developer ' + parseInt(Math.random() * 100);
-var name = righto.sync(prompt, 'What\'s your name?: (Default ' + defaultName + '): ', defaultName);
-var serverAddress = righto(getServerAddress, righto.after(name));
+var name = existingSession.get(session => prompt('What\'s your name?: (Default ' + session.name + '): ', session.name));
+var serverAddress = righto(getServerAddress, existingSession.get('serverAddress'), righto.after(name));
 var challengesList = righto(getChallengesList, serverAddress);
+var sessionSaved = righto(saveSession, name, serverAddress)();
 
 function challengePrompt(error){
     if(error){

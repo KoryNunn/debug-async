@@ -35,7 +35,7 @@ function rightoCacher(cacheTime){
 }
 
 var clientCacher = rightoCacher(10000);
-function getClient(callback){
+function getClient(referer, callback){
     var zippedClient = clientCacher(righto(zipdir, clientFolderPath, {
         filter: (path, stat) => (!/\.zip$/.test(path) && !/.*challenges\/.*/.test(path))
     }));
@@ -47,8 +47,7 @@ var taskCachers = {};
 function getTaskZip(taskName, callback){
     var taskFolderPath = path.join(challengesFolderPath, taskName);
     var maybeTaskPath = righto(fs.stat, taskFolderPath).get(()=>taskFolderPath);
-    var validTaskPath = righto.handle(maybeTaskPath, (
-        error, done) => done(new errors.NotFound()));
+    var validTaskPath = righto.handle(maybeTaskPath, (error, done) => done(new errors.NotFound()));
     var zippedBuffer = validTaskPath.get(function(taskPath){
             taskCachers[taskName] = taskCachers[taskName] || rightoCacher(3000);
             return taskCachers[taskName](righto(zipdir, taskPath));
@@ -95,7 +94,7 @@ router.add({
         get: handle(function(tokens, callback){
             var response = this.response;
             response.writeHead(200, {'Content-Disposition': 'inline; filename=client.zip'});
-            getClient(callback);
+            getClient(this.request.headers.referer, callback);
         })
     },
     '/challenges': {
@@ -121,5 +120,5 @@ router.add({
 
 var server = http.createServer(router.createHandler());
 
-server.listen(port);
+server.listen(port, '0.0.0.0');
 console.log('running on', port)
