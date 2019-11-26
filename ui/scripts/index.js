@@ -108,7 +108,7 @@ function getResults(){
 
         fastn.Model.set(data, 'results', challenges);
 
-        setTimeout(getResults, 500);
+        setTimeout(getResults, 3000);
     });
 }
 

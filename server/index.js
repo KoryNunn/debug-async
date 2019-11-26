@@ -105,7 +105,12 @@ function storeResult(data, callback){
     }, callback);
 }
 
+var cachedAttempts;
 function getAttempts(data, callback){
+    if(cachedAttempts && Date.now() - cachedAttempts.timestamp < 3000){
+        return cachedAttempts(callback)
+    }
+
     var attempts = righto(callarest, {
         method: 'get',
         url: collectionEndpoint('attempts'),
@@ -116,7 +121,17 @@ function getAttempts(data, callback){
     .get('body')
     .get('items')
 
-    attempts(callback)
+    attempts.timestamp = Date.now();
+
+    attempts(function(){
+        cachedAttempts = attempts
+    })
+
+    if(!cachedAttempts){
+        cachedAttempts = attempts
+    }
+
+    cachedAttempts(callback)
 }
 
 router.add({
