@@ -121,7 +121,7 @@ function getAttempts(data, callback){
 
 router.add({
     '/': {
-        get: dion.serveFile(path.join(__dirname, '../public/index.html'), 'text/html')
+        get: dion.serveFile('./public/index.html', 'text/html')
     },
     '/client': {
         get: handle(function(tokens, callback){
