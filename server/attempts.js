@@ -60,8 +60,14 @@ function updateAttemptsCollection(callback){
         }, done)
     })
     .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body);
+    
+    updated(error => {
+        if(error){
+            console.error('ERROR UPDATING ATTEMPTS COLLECTION', error)
+        }
+    })
 
-    updated(callback)
+    updated(callback);
 }
 
 var attemptsReady;
