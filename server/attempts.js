@@ -8,7 +8,7 @@ var {
 } = require('./config');
 
 function updateAttemptsCollection(callback){
-    var validToken = `data.token === "${databaseToken}" ? '' : "401"`;
+    var validToken = `body.token === "${databaseToken}" ? '' : "401"`;
 
     var schema = {
         name: 'attempts',
