@@ -14,6 +14,7 @@ module.exports = function handle(wrapper, handler){
                     response.writeHead(error.code);
                     response.end(JSON.stringify(error));
                 }else{
+                    console.error('Server Error', error)
                     response.writeHead(500);
                     response.end();
                 }
