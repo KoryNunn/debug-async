@@ -8,21 +8,25 @@ var {
 } = require('./config');
 
 function updateAttemptsCollection(callback){
-    var validToken = `data.token === ${databaseToken} ? null : "401"`;
+    var validToken = `data.token === "${databaseToken}" ? '' : "401"`;
 
     var schema = {
         name: 'attempts',
 
         schema: {
-            id: ['required', 'number'],
+            sessionId: ['required', 'string'],
             time: ['required', 'number'],
-            result: ['string'],
+            result: ['required', 'string'],
             name: ['required', 'string'],
             challenge: ['required', 'string']
         },
 
-        mutations: [
+        transforms: [
             '{ ...body delete token }'
+        ],
+
+        presenters: [
+            '{ ...record time: Number(record.time) }'
         ],
 
         rules: {
@@ -42,7 +46,7 @@ function updateAttemptsCollection(callback){
             'X-Session-Secret': bitabaseSessionSecret || ''
         }
     })
-    .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body);
+    .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result);
 
     var updated = righto.handle(created, function(error, done){
         callarest({
@@ -55,7 +59,7 @@ function updateAttemptsCollection(callback){
             }
         }, done)
     })
-    .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body)(console.log);
+    .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body);
 
     updated(callback)
 }

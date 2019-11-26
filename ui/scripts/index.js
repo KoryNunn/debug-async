@@ -23,7 +23,7 @@ function renderParticipantResults(startTime){
 function renderParticipants(){
     var attemptsToShow = 3;
     return fastn('div', { class: 'participant' },
-        fastn('h2', fastn.binding('key')),
+        fastn('h2', fastn.binding('item.name')),
         fastn('p', fastn.binding('item.attempts|*', function(attempts){
             var notShownCount = attempts.length - 3;
             return (notShownCount > 0 ? notShownCount + ' attempt' + (notShownCount > 1 ? 's' : '') + ' not shown' : '');
@@ -31,7 +31,7 @@ function renderParticipants(){
         fastn('section:list', {
             items: fastn.binding('item.attempts|*', attempts => attempts.slice(-3)),
             template: (model, scope) =>
-                renderParticipantResults(fastn.binding('item.start').attach(scope)),
+                renderParticipantResults(fastn.binding('item.time').attach(scope)),
             emptyTemplate: () => fastn('h3', 'No results yet')
         })
     );
@@ -91,12 +91,22 @@ window.addEventListener('load', function(){
 });
 
 function getResults(){
-    cpjax({ url: '/results', dataType: 'json'}, function(error, results){
+    cpjax({ url: '/results', dataType: 'json'}, function(error, attempts){
         if(error){
             return;
         }
 
-        fastn.Model.set(data, 'results', results);
+        var challenges = attempts.reduce(function(results, attempt){
+            results[attempt.challenge] = results[attempt.challenge] || {}
+            results[attempt.challenge][attempt.sessionId] = results[attempt.challenge][attempt.sessionId] || {
+                ...attempt,
+                attempts: []
+            };
+            results[attempt.challenge][attempt.sessionId].attempts.push(attempt)
+            return results;
+        }, {})
+
+        fastn.Model.set(data, 'results', challenges);
 
         setTimeout(getResults, 500);
     });

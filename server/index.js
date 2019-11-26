@@ -24,7 +24,6 @@ var collectionEndpoint = config.collectionEndpoint;
 var attemptsReady = require('./attempts');
 
 function saveAttempt(attempt, callback){
-    console.log(attempt, config.databaseToken)
     var stored = righto(callarest, {
         method: 'post',
         url: collectionEndpoint('attempts'),
@@ -33,6 +32,7 @@ function saveAttempt(attempt, callback){
             token: config.databaseToken
         }
     }, righto.after(attemptsReady()))
+    .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body);
 
     stored(callback)
 }
@@ -80,17 +80,17 @@ function getChallengesList(callback){
 }
 
 function initResult(data, callback){
-    var id = uuid();
+    var sessionId = uuid();
 
     var saved = righto(saveAttempt, {
-        id,
+        sessionId,
         time: Date.now(),
-        result: null,
+        result: 'Starting...',
         name: data.name,
         challenge: data.challenge
     });
 
-    var result = righto.mate(id, righto.after(saved));
+    var result = saved.get('sessionId');
 
     result(callback)
 }
@@ -100,11 +100,9 @@ function storeResult(data, callback){
         time: Date.now(),
         challenge: data.challenge,
         name: data.name,
-        id: data.id,
+        sessionId: data.sessionId,
         result: data.result
-    });
-
-    callback();
+    }, callback);
 }
 
 function getAttempts(data, callback){

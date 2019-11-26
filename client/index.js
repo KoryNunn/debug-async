@@ -150,7 +150,8 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
 
     function rerun(){
         runs++;
-        sessionId(function(error, id){
+        sessionId(function(error, sessionId){
+            console.log(sessionId)
             if(error){
                 return callback(error)
             }
@@ -198,7 +199,7 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
                             challenge: challengeName,
                             name: name,
                             result: 'error',
-                            id
+                            sessionId
                         }
                     }, function(error, result){
                         rerun();
@@ -220,7 +221,8 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
                     json: {
                         challenge: challengeName,
                         name: name,
-                        result: result
+                        result,
+                        sessionId
                     }
                 }, function(error, result){
                     rerun();
