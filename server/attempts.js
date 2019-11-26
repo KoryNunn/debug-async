@@ -63,7 +63,9 @@ function updateAttemptsCollection(callback){
     
     updated(error => {
         if(error){
-            console.error('ERROR UPDATING ATTEMPTS COLLECTION', error)
+            console.error('ERROR UPDATING COLLECTION', error)
+        } else {
+            console.log('Successfully updated collection')
         }
     })
 
