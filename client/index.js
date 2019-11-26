@@ -1,9 +1,10 @@
 var fs = require('fs');
+var mkdirp = require('mkdirp');
 var righto = require('righto');
 var createPrompt = require('prompt-sync');
 var makeRequest = require('make-json-request');
 var request = require('request');
-var unzip = require('unzip');
+var unzip = require('unzipper');
 var path = require('path');
 var spawn = require('child_process').spawn;
 var spawnSync = require('child_process').spawnSync;
@@ -16,6 +17,8 @@ var prompt = createPrompt({
 
 var challengesDirectory = __dirname + '/challenges';
 var sessionPath = path.join(__dirname, './session.json');
+
+mkdirp.sync(challengesDirectory);
 
 function complete(commands) {
     return function (str) {
@@ -39,7 +42,7 @@ function getServerAddress(defaultAddress, callback){
     makeRequest(serverAddress + '/ping', function(error, result){
         if(error || result !== 'totes legit'){
             console.log('Server not found, try again.');
-            return getServerAddress(callback);
+            return getServerAddress(defaultAddress, callback);
         }
 
         callback(null, serverAddress);
@@ -52,7 +55,7 @@ function getChallengesList(serverAddress, callback){
     makeRequest(serverAddress + '/challenges', function(error, result){
         if(error){
             if(prompt('Something went wrong, retry? (Y/n): ').toLowerCase() !== 'n'){
-                return getChallengesList(callback);
+                return getChallengesList(serverAddress, callback);
             }
             return  callback('Could not load challenge list');
         }
@@ -134,102 +137,121 @@ function launchEditor(launchEditorCommand, challengePath, callback){
 }
 
 function executeChallenge(challengeName, challengePath, serverAddress, name, callback){
-    var rerun = executeChallenge.apply.bind(executeChallenge, null, arguments);
+    var sessionId = righto(makeRequest, {
+        method: 'POST',
+        url: serverAddress + '/results',
+        json: {
+            challenge: challengeName,
+            name: name
+        }
+    });
 
-    var isFirstInit = righto(makeRequest, {
-            method: 'POST',
-            url: serverAddress + '/results',
-            json: {
-                challenge: challengeName,
-                name: name
+    var runs = 0;
+
+    function rerun(){
+        runs++;
+        sessionId(function(error, id){
+            if(error){
+                return callback(error)
             }
-        });
 
-    isFirstInit(function(error, firstRun){
-        if(!firstRun){
-            console.log(chalk.green.bold(
-                '\n FEEL FREE TO USE ANOTHER TERMINAL TO TEST / DEBUG YOUR CODE\n',
-                '      Just come back here and (R)un it when you\'re done :)\n\n'
-            ));
-            console.log(chalk.yellow('Challenge directory:'), './' + path.relative(process.cwd(), challengePath), '\n');
-        }
+            var firstRun = runs === 1;
+
+            if(firstRun){
+                console.log(chalk.green.bold(
+                    '\n FEEL FREE TO USE ANOTHER TERMINAL TO TEST / DEBUG YOUR CODE\n',
+                    '      Just come back here and (R)un it when you\'re done :)\n\n'
+                ));
+                console.log(chalk.yellow('Challenge directory:'), './' + path.relative(process.cwd(), challengePath), '\n');
+            }
 
 
-        var which = firstRun ? 'R' : prompt('(R)un the tests or (c)hoose another challenge: ', 'r').toLowerCase();
+            var which = firstRun ? 'R' : prompt('(R)un the tests or (c)hoose another challenge: ', 'r').toLowerCase();
 
-        if(which === 'c'){
-            return callback();
-        }
+            if(which === 'c'){
+                return callback();
+            }
 
-        var child = spawn('node', [challengePath + '/index.js'], { cwd: challengePath, env: process.env, stdio: [process.stdin, 'pipe', 'pipe'] });
+            var child = spawn('node', [challengePath + '/index.js'], { cwd: challengePath, env: process.env, stdio: [process.stdin, 'pipe', 'pipe'] });
 
-        child.stdout.pipe(process.stdout);
-        child.stderr.pipe(process.stderr);
+            child.stdout.pipe(process.stdout);
+            child.stderr.pipe(process.stderr);
 
-        var lastChildOutput;
-        var lastChildError;
+            var lastChildOutput;
+            var lastChildError;
 
-        child.stdout.on('data', function(data){
-            lastChildOutput = data.toString();
-        });
-        child.stderr.on('data', function(data){
-            lastChildOutput = data.toString();
-        });
+            child.stdout.on('data', function(data){
+                lastChildOutput = data.toString();
+            });
+            child.stderr.on('data', function(data){
+                lastChildOutput = data.toString();
+            });
 
-        child.on('close', function(){
+            child.on('close', function(){
 
-            if(lastChildError){
-                console.log('Challenge errored!');
+                if(lastChildError){
+                    console.log('Challenge errored!');
+                    makeRequest({
+                        method: 'PUT',
+                        url: serverAddress + '/results',
+                        json: {
+                            challenge: challengeName,
+                            name: name,
+                            result: 'error',
+                            id
+                        }
+                    }, function(error, result){
+                        rerun();
+                    });
+                    return;
+                }
+
+                var result = lastChildOutput.match(/# ok/) ? 'pass' : 'fail';
+
+                console.log('\nChallenge completed, result:', chalk[result === 'pass' ? 'green' : 'red'](result));
+
+                if(firstRun){
+                    return rerun();
+                }
+
                 makeRequest({
                     method: 'PUT',
                     url: serverAddress + '/results',
                     json: {
                         challenge: challengeName,
                         name: name,
-                        result: 'error'
+                        result: result
                     }
                 }, function(error, result){
                     rerun();
                 });
-                return;
-            }
-
-            var result = lastChildOutput.match(/# ok/) ? 'pass' : 'fail';
-
-            console.log('\nChallenge completed, result:', chalk[result === 'pass' ? 'green' : 'red'](result));
-
-            if(firstRun){
-                return rerun();
-            }
-
-            makeRequest({
-                method: 'PUT',
-                url: serverAddress + '/results',
-                json: {
-                    challenge: challengeName,
-                    name: name,
-                    result: result
-                }
-            }, function(error, result){
-                rerun();
             });
         });
-    });
+    }
+
+    rerun()
 }
 
 function loadSession(callback){
+    var defaultSession = {
+        name: 'Node developer ' + parseInt(Math.random() * 100),
+        serverAddress: 'http://debug-async.korynunn.com:80'
+    };
+
     var maybeSessionFile = righto(fs.readFile, sessionPath)
         .get(function(file){
             try{
-                return JSON.parse(file);
+                return {
+                    ...defaultSession,
+                    ...JSON.parse(file)
+                };
             }catch(error){
                 return righto.fail('JSON Parse fail');
             }
         });
     var session = righto.handle(maybeSessionFile, function(error, done){
         done(null, {
-            name: 'Node developer ' + parseInt(Math.random() * 100),
-            serverAddress: 'localhost:8080'
+            ...defaultSession
         });
     });
 
@@ -242,9 +264,8 @@ function saveSession(name, serverAddress, callback){
 
 console.log('\nAsync Challenges.\n');
 var existingSession = righto(loadSession);
-var defaultName = 'Node developer ' + parseInt(Math.random() * 100);
 var name = existingSession.get(session => prompt('What\'s your name?: (Default ' + session.name + '): ', session.name));
-var serverAddress = righto(getServerAddress, existingSession.get('serverAddress'), righto.after(name));
+var serverAddress = existingSession.get('serverAddress');
 var challengesList = righto(getChallengesList, serverAddress);
 var sessionSaved = righto(saveSession, name, serverAddress)();
 
@@ -252,6 +273,7 @@ function challengePrompt(error){
     if(error){
         console.log(error);
     }
+
     var challengeName = righto(chooseChallenge, serverAddress, challengesList);
     var challengeLoaded = righto(loadChallenge, serverAddress, challengeName);
     var challengeExecuted = righto(executeChallenge, challengeName, challengeLoaded, serverAddress, name);

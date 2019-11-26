@@ -7,8 +7,11 @@ var path = require('path');
 var zipdir = require('zip-dir');
 var errors = require('generic-errors');
 var requestData = require('request-data');
+var callarest = require('callarest/json');
 var handle = require('./handle');
-var port = 8080;
+var config = require('./config');
+var uuid = require('uuid/v4');
+var port = config.port;
 
 var router = new SeaLion();
 var dion = new Dion(router);
@@ -16,7 +19,23 @@ var dion = new Dion(router);
 var clientFolderPath = path.join(__dirname, '../client');
 var challengesFolderPath = path.join(__dirname, '../challenges');
 
-var results = {};
+var collectionEndpoint = config.collectionEndpoint;
+
+var attemptsReady = require('./attempts');
+
+function saveAttempt(attempt, callback){
+    console.log(attempt, config.databaseToken)
+    var stored = righto(callarest, {
+        method: 'post',
+        url: collectionEndpoint('attempts'),
+        data: {
+            ...attempt,
+            token: config.databaseToken
+        }
+    }, righto.after(attemptsReady()))
+
+    stored(callback)
+}
 
 function rightoCacher(cacheTime){
     var result;
@@ -61,29 +80,45 @@ function getChallengesList(callback){
 }
 
 function initResult(data, callback){
-    var challengeResults = results[data.challenge] = results[data.challenge] || {};
+    var id = uuid();
 
-    var isFirstInit = !(data.name in challengeResults);
-    var participantResults = challengeResults[data.name] = challengeResults[data.name] || {
-        start: Date.now(),
-        attempts: []
-    };
-    callback(null, isFirstInit);
+    var saved = righto(saveAttempt, {
+        id,
+        time: Date.now(),
+        result: null,
+        name: data.name,
+        challenge: data.challenge
+    });
+
+    var result = righto.mate(id, righto.after(saved));
+
+    result(callback)
 }
 
 function storeResult(data, callback){
-    var challengeResults = results[data.challenge];
-    var participantResults = challengeResults && challengeResults[data.name];
-    if(!participantResults){
-        return callback(new errors.Unprocessable('No result has been initiated'));
-    }
-
-    participantResults.attempts.push({
+    saveAttempt({
         time: Date.now(),
+        challenge: data.challenge,
+        name: data.name,
+        id: data.id,
         result: data.result
     });
 
     callback();
+}
+
+function getAttempts(data, callback){
+    var attempts = righto(callarest, {
+        method: 'get',
+        url: collectionEndpoint('attempts'),
+        data: {
+            token: config.databaseToken
+        }
+    }, righto.after(attemptsReady()))
+    .get('body')
+    .get('items')
+
+    attempts(callback)
 }
 
 router.add({
@@ -101,7 +136,7 @@ router.add({
         get: handle((tokens, callback) => getChallengesList(callback))
     },
     '/results': {
-        get: handle((tokens, callback) => callback(null, results)),
+        get: handle(requestData, (tokens, data, callback) => getAttempts(data, callback)),
         post: handle(requestData, (tokens, data, callback) => initResult(data, callback)),
         put: handle(requestData, (tokens, data, callback) => storeResult(data, callback))
     },

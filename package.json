@@ -7,23 +7,30 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "browserify ui/scripts/index.js > public/index.js",
     "postinstall": "cd ./client; npm i; cd -",
-    "watch": "watchify -d ui/scripts/index.js -o public/index.js"
+    "watch": "watchify -d ui/scripts/index.js -o public/index.js",
+    "serve": "node server",
+    "start": "npm-run-all --parallel watch serve"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "abbott": "^1.1.3",
+    "callarest": "^1.4.0",
     "cpjax": "^1.1.2",
-    "dion": "^1.0.2",
+    "dion": "^2.0.0",
     "fastn": "^2.8.1",
     "generic-errors": "^2.0.2",
+    "random-words": "^1.1.0",
     "request-data": "^1.2.0",
     "righto": "^3.0.1",
     "sea-lion": "^2.0.1",
     "tape": "^4.7.0",
+    "unzipper": "^0.10.5",
+    "uuid": "^3.3.3",
     "zip-dir": "^1.0.2"
   },
   "devDependencies": {
+    "npm-run-all": "^4.1.5",
     "watchify": "^3.9.0"
   }
 }

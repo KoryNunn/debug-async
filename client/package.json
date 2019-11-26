@@ -12,9 +12,13 @@
   "dependencies": {
     "chalk": "^2.0.1",
     "make-json-request": "^1.0.0",
+    "mkdirp": "^0.5.1",
     "prompt-sync": "^4.1.5",
+    "random-words": "^1.1.0",
     "request": "^2.81.0",
     "righto": "^3.0.4",
-    "unzip": "^0.1.11"
+    "tape": "^4.11.0",
+    "unzipper": "^0.10.5",
+    "uuid": "^3.3.3"
   }
 }
