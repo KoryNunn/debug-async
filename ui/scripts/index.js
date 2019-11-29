@@ -57,7 +57,7 @@ function renderChallengeResults(){
                         .sort((a, b) => b.time - a.time)
                         .pop();
 
-                    return results.concat(firstPass ? firstPass.time - participantData.start : []);
+                    return results.concat(firstPass ? firstPass.time - participantData.time : []);
                 }, []);
 
             if(!passInfos.length){
