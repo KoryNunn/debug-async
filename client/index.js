@@ -184,33 +184,18 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
             child.stdout.on('data', function(data){
                 output += data.toString();
             });
-            child.stderr.on('data', function(data){
-                output += data.toString();
-                errored = true;
-            });
 
             child.on('close', function(){
+                var result = output.includes(/# ok[^\w]*?$/)
+                    ? 'pass'
+                    : output.includes(/# fail[^\w]*?$/)
+                        ? 'fail' : 'error';
 
-                if(errored){
+                if (result === 'error') {
                     console.log('Challenge errored!');
-                    makeRequest({
-                        method: 'PUT',
-                        url: serverAddress + '/results',
-                        json: {
-                            challenge: challengeName,
-                            name: name,
-                            result: 'error',
-                            sessionId
-                        }
-                    }, function(error, result){
-                        rerun();
-                    });
-                    return;
+                } else {
+                    console.log('\nChallenge completed, result:', chalk[result === 'pass' ? 'green' : 'red'](result));
                 }
-
-                var result = output.includes(/# ok[^\w]*?/) ? 'pass' : 'fail';
-
-                console.log('\nChallenge completed, result:', chalk[result === 'pass' ? 'green' : 'red'](result));
 
                 if(firstRun){
                     return rerun();

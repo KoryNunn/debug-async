@@ -106,29 +106,55 @@ function storeResult(data, callback){
 }
 
 var cachedAttempts;
+var loadInFlight;
 function getAttempts(data, callback){
     if(cachedAttempts && Date.now() - cachedAttempts.timestamp < 3000){
         return cachedAttempts(callback)
     }
 
-    var attempts = righto(callarest, {
-        method: 'get',
-        url: `${collectionEndpoint('attempts')}?limit=10000`,
-        data: {
-            token: config.databaseToken
+    if(!loadInFlight){
+        loadInFlight = true;
+        var attempts = righto(callarest, {
+            method: 'get',
+            url: `${collectionEndpoint('attempts')}?limit=10000`,
+            data: {
+                token: config.databaseToken
+            }
+        }, righto.after(attemptsReady()))
+        .get('body')
+        .get('items')
+        .get(attempts => {
+            var challenges = attempts.reduce(function(results, attempt){
+                results[attempt.challenge] = results[attempt.challenge] || {}
+                results[attempt.challenge][attempt.sessionId] = results[attempt.challenge][attempt.sessionId] || {
+                    ...attempt,
+                    attempts: []
+                };
+                results[attempt.challenge][attempt.sessionId].attempts.push(attempt)
+                return results;
+            }, {})
+
+            Object.keys(challenges).forEach(function(challengeKey){
+                Object.keys(challenges[challengeKey]).forEach(function(participantKey){
+                    if(!challenges[challengeKey][participantKey].result !=== 'Starting...'){
+                        delete challenges[challengeKey][participantKey]
+                    }
+                })
+            })
+
+            return challenges
+        })
+
+        attempts.timestamp = Date.now();
+
+        attempts(function(){
+            cachedAttempts = attempts
+            loadInFlight = false;
+        })
+
+        if(!cachedAttempts){
+            cachedAttempts = attempts
         }
-    }, righto.after(attemptsReady()))
-    .get('body')
-    .get('items')
-
-    attempts.timestamp = Date.now();
-
-    attempts(function(){
-        cachedAttempts = attempts
-    })
-
-    if(!cachedAttempts){
-        cachedAttempts = attempts
     }
 
     cachedAttempts(callback)

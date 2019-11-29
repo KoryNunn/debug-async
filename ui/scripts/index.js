@@ -91,20 +91,10 @@ window.addEventListener('load', function(){
 });
 
 function getResults(){
-    cpjax({ url: '/results', dataType: 'json'}, function(error, attempts){
+    cpjax({ url: '/results', dataType: 'json'}, function(error, challenges){
         if(error){
             return;
         }
-
-        var challenges = attempts.reduce(function(results, attempt){
-            results[attempt.challenge] = results[attempt.challenge] || {}
-            results[attempt.challenge][attempt.sessionId] = results[attempt.challenge][attempt.sessionId] || {
-                ...attempt,
-                attempts: []
-            };
-            results[attempt.challenge][attempt.sessionId].attempts.push(attempt)
-            return results;
-        }, {})
 
         fastn.Model.update(data, 'results', challenges, { strategy: 'morph' });
 
