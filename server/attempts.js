@@ -8,33 +8,17 @@ var {
 } = require('./config');
 
 function updateAttemptsCollection(callback){
-    var validToken = `body.token === "${databaseToken}" ? '' : "401"`;
-
     var schema = {
         name: 'attempts',
 
-        schema: {
-            sessionId: ['required', 'string'],
-            time: ['required', 'number'],
-            result: ['required', 'string'],
-            name: ['required', 'string'],
-            challenge: ['required', 'string']
-        },
-
-        transforms: [
+        transducers: [
+            `body.token === "${databaseToken}" ? '' : reject(401 "Invalid token")`,
             '{ ...body delete token }'
         ],
 
         presenters: [
             '{ ...record time: Number(record.time) }'
-        ],
-
-        rules: {
-            POST: [ validToken ],
-            PUT: [ validToken ],
-            PATCH: [ validToken ],
-            DELETE: [ validToken ]
-        }
+        ]
     }
 
     var created = righto(callarest, {
@@ -60,7 +44,7 @@ function updateAttemptsCollection(callback){
         }, done)
     })
     .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body);
-    
+
     updated(error => {
         if(error){
             console.error('ERROR UPDATING COLLECTION', error)
