@@ -186,9 +186,9 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
             });
 
             child.on('close', function(){
-                var result = output.includes(/# ok[^\w]*?$/)
+                var result = output.match(/^# ok$/m)
                     ? 'pass'
-                    : output.includes(/# fail[^\w]*?$/)
+                    : output.match(/^# fail\s+\d+$/m)
                         ? 'fail' : 'error';
 
                 if (result === 'error') {

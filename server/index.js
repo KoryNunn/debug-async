@@ -136,7 +136,7 @@ function getAttempts(data, callback){
 
             Object.keys(challenges).forEach(function(challengeKey){
                 Object.keys(challenges[challengeKey]).forEach(function(participantKey){
-                    if(!challenges[challengeKey][participantKey].result !=== 'Starting...'){
+                    if(!challenges[challengeKey][participantKey].result !== 'Starting...'){
                         delete challenges[challengeKey][participantKey]
                     }
                 })
