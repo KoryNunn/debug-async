@@ -237,7 +237,7 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
 function loadSession(callback){
     var defaultSession = {
         name: 'Node developer ' + parseInt(Math.random() * 100),
-        serverAddress: 'http://debug-async.korynunn.com:80'
+        serverAddress: 'https://debug-async.korynunn.com'
     };
 
     var maybeSessionFile = righto(fs.readFile, sessionPath)
