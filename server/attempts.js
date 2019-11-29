@@ -12,7 +12,7 @@ function updateAttemptsCollection(callback){
         name: 'attempts',
 
         transducers: [
-            `body.token === "${databaseToken}" ? '' : reject(401 "Invalid token")`,
+            `body.token === "${databaseToken}" ? body : reject(401 "Invalid token")`,
             '{ ...body delete token }'
         ],
 
