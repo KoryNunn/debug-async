@@ -56,7 +56,7 @@ function rightoCacher(cacheTime){
 var clientCacher = rightoCacher(10000);
 function getClient(referer, callback){
     var zippedClient = clientCacher(righto(zipdir, clientFolderPath, {
-        filter: (path, stat) => (!/\.zip$/.test(path) && !/.*challenges\/.*/.test(path))
+        filter: (path, stat) => (!/\.zip$/.test(path) && !/.*challenges\/.*/.test(path) && !/.*session\.json/.test(path))
     }));
 
     zippedClient(callback);
@@ -113,7 +113,7 @@ function getAttempts(data, callback){
 
     var attempts = righto(callarest, {
         method: 'get',
-        url: collectionEndpoint('attempts'),
+        url: `${collectionEndpoint('attempts')}?limit=10000`,
         data: {
             token: config.databaseToken
         }

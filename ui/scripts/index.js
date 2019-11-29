@@ -106,7 +106,7 @@ function getResults(){
             return results;
         }, {})
 
-        fastn.Model.set(data, 'results', challenges);
+        fastn.Model.update(data, 'results', challenges, { strategy: 'morph' });
 
         setTimeout(getResults, 3000);
     });
