@@ -33,22 +33,6 @@ function complete(commands) {
     };
 };
 
-function getServerAddress(defaultAddress, callback){
-    var serverAddress = prompt('Where\'s the server?: (Default: ' + defaultAddress + ')', defaultAddress);
-    if(serverAddress.indexOf('http') !== 0){
-        serverAddress = 'http://' + serverAddress;
-    }
-
-    makeRequest(serverAddress + '/ping', function(error, result){
-        if(error || result !== 'totes legit'){
-            console.log('Server not found, try again.');
-            return getServerAddress(defaultAddress, callback);
-        }
-
-        callback(null, serverAddress);
-    });
-}
-
 function getChallengesList(serverAddress, callback){
     console.log('Loading list of challenges...');
 
@@ -151,7 +135,6 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
     function rerun(){
         runs++;
         sessionId(function(error, sessionId){
-            console.log(sessionId)
             if(error){
                 return callback(error)
             }
@@ -164,6 +147,7 @@ function executeChallenge(challengeName, challengePath, serverAddress, name, cal
                     '      Just come back here and (R)un it when you\'re done :)\n\n'
                 ));
                 console.log(chalk.yellow('Challenge directory:'), './' + path.relative(process.cwd(), challengePath), '\n');
+                console.log(chalk.green.bold('(Open this in your editor and make changes to get the tests passing!)'), '\n');
             }
 
 
