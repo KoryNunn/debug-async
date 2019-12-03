@@ -3,7 +3,7 @@ righto._debug = true;
 righto._autotraceOnError = true;
 var fs = require('fs');
 
-module.exports = function(callback){
+function loadFiles(callback){
     var pathsFile = righto(fs.readFile, __dirname + '/test.txt', 'utf8');
 
     var fileNames = pathsFile.get(filePaths => filePaths.spilt('\n'));
@@ -16,3 +16,11 @@ module.exports = function(callback){
 
     files(callback);
 };
+
+module.exports = function(callback){
+	var result = righto.handle(righto(loadFiles), (error, done) => {
+		done(new Error('Could not load files: ' + error.message))
+	});
+
+	result(callback);
+}
