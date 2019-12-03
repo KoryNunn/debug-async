@@ -121,9 +121,8 @@ function getAttempts(data, callback){
         .get('body')
         .get('items')
         .get(attempts => {
-            
             var challenges = attempts
-            .sort((a,b) => b.time - a.time)
+            .sort((a,b) => a.time - b.time)
             .reduce(function(results, attempt){
                 results[attempt.challenge] = results[attempt.challenge] || {};
                 results[attempt.challenge][attempt.sessionId] = results[attempt.challenge][attempt.sessionId] || {
