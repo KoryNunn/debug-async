@@ -116,10 +116,7 @@ function getAttempts(data, callback){
         loadInFlight = true;
         var attempts = righto(callarest, {
             method: 'get',
-            url: `${collectionEndpoint('attempts')}?limit=10000`,
-            data: {
-                token: config.databaseToken
-            }
+            url: `${collectionEndpoint('attempts')}?order=desc(time)&limit=100`
         }, righto.after(attemptsReady()))
         .get('body')
         .get('items')
