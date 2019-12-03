@@ -116,7 +116,7 @@ function getAttempts(data, callback){
         loadInFlight = true;
         var attempts = righto(callarest, {
             method: 'get',
-            url: `${collectionEndpoint('attempts')}?order=desc(time)&limit=100&query=${encodeURIComponent(JSON.stringify(({ time: { "$gt": (Date.now() - 1000 * 60 * 60 * 48 )}})))}`
+            url: `${collectionEndpoint('attempts')}?order=desc(time)&limit=100`//&query=${encodeURIComponent(JSON.stringify(({ time: { "$gt": (Date.now() - 1000 * 60 * 60 * 48 )}})))}`
         }, righto.after(attemptsReady()))
         .get('body')
         .get('items')
