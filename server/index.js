@@ -34,7 +34,7 @@ function saveAttempt(attempt, callback){
     }, righto.after(attemptsReady()))
     .get(result => result.response.statusCode >= 300 ? righto.fail(result.body) : result.body);
 
-    stored(callback)
+    stored(callback);
 }
 
 function rightoCacher(cacheTime){
@@ -92,7 +92,7 @@ function initResult(data, callback){
 
     var result = saved.get('sessionId');
 
-    result(callback)
+    result(callback);
 }
 
 function storeResult(data, callback){
@@ -109,7 +109,7 @@ var cachedAttempts;
 var loadInFlight;
 function getAttempts(data, callback){
     if(cachedAttempts && Date.now() - cachedAttempts.timestamp < 3000){
-        return cachedAttempts(callback)
+        return cachedAttempts(callback);
     }
 
     if(!loadInFlight){
@@ -121,41 +121,43 @@ function getAttempts(data, callback){
         .get('body')
         .get('items')
         .get(attempts => {
-            var challenges = attempts.reduce(function(results, attempt){
-                results[attempt.challenge] = results[attempt.challenge] || {}
+            
+            var challenges = attempts
+            .sort((a,b) => b.time - a.time)
+            .reduce(function(results, attempt){
+                results[attempt.challenge] = results[attempt.challenge] || {};
                 results[attempt.challenge][attempt.sessionId] = results[attempt.challenge][attempt.sessionId] || {
                     ...attempt,
                     attempts: []
                 };
-                results[attempt.challenge][attempt.sessionId].attempts.push(attempt)
+                results[attempt.challenge][attempt.sessionId].attempts.push(attempt);
                 return results;
-            }, {})
+            }, {});
 
             Object.keys(challenges).forEach(function(challengeKey){
                 Object.keys(challenges[challengeKey]).forEach(function(participantKey){
-                    debugger
                     if(challenges[challengeKey][participantKey].result !== 'Starting...'){
-                        delete challenges[challengeKey][participantKey]
+                        delete challenges[challengeKey][participantKey];
                     }
                 })
-            })
+            });
 
-            return challenges
+            return challenges;
         })
 
         attempts.timestamp = Date.now();
 
         attempts(function(){
-            cachedAttempts = attempts
+            cachedAttempts = attempts;
             loadInFlight = false;
         })
 
         if(!cachedAttempts){
-            cachedAttempts = attempts
+            cachedAttempts = attempts;
         }
     }
 
-    cachedAttempts(callback)
+    cachedAttempts(callback);
 }
 
 router.add({
