@@ -91,12 +91,10 @@ window.addEventListener('load', function(){
 });
 
 function getResults(){
-    cpjax({ url: '/results', dataType: 'json'}, function(error, challenges){
-        if(error){
-            return;
+    cpjax({ url: '/results', dataType: 'json' }, function(error, challenges){
+        if(!error){
+            fastn.Model.update(data, 'results', challenges, { strategy: 'morph' });
         }
-
-        fastn.Model.update(data, 'results', challenges, { strategy: 'morph' });
 
         setTimeout(getResults, 3000);
     });
